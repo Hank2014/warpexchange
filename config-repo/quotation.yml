@@ -1,4 +1,4 @@
 # Quotation
 
 server:
-  port: ${APP_PORT:8005}
+  port: ${APP_PORT:0}

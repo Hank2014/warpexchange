@@ -24,32 +24,26 @@ div.ex-depth-buy {
 
 {% block script %}
 
-<!-- TradingView图表js -->
+<!-- Calling external API: TradingView charting library: License Apache 2.0 -->
 <script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
 
 <script>
-// 展示的OrderBook最大个数:
 const MAX_ORDERBOOK_ITEMS = 5;
 
-// 展示的最新成交Ticks最大个数:
 const MAX_TICKS = 8;
 
-// 初始化Vue App:
 $(function() {
 	initApp();
 });
 
-// 异步Get请求:
 async function get(path) {
 	return await request('GET', path);
 }
 
-// 异步Post请求:
 async function post(path, params) {
 	return await request('POST', path, JSON.stringify(params));
 }
 
-// 异步请求:
 async function request(method, path, data) {
 	try {
 		return await $.ajax({
@@ -67,12 +61,10 @@ async function request(method, path, data) {
 	}
 }
 
-// 显示错误:
 function showError(msg) {
 	showInfo(msg, true);
 }
 
-// 显示信息:
 function showInfo(msg, err) {
 	let nextId = window._nextNotificationId || 0;
 	window._nextNotificationId = nextId + 1;
@@ -95,14 +87,13 @@ function showInfo(msg, err) {
 	});
 }
 
-// 查找最大的quantity:
+// find max quantity:
 function findMax(buy, sell) {
 	let b = Math.max(...buy.map(item => item.quantity));
 	let s = Math.max(...sell.map(item => item.quantity));
 	return Math.max(b, s);
 }
 
-// 填充OrderBook:
 function fillOrderBook(direction, itemList) {
 	let list = [...itemList];
 	if (list.length > MAX_ORDERBOOK_ITEMS) {
@@ -122,7 +113,6 @@ function fillOrderBook(direction, itemList) {
 	return list;
 }
 
-// 填充Ticks:
 function fillTicks(tickList) {
 	let list = [...tickList];
 	list.reverse();
@@ -137,13 +127,12 @@ function fillTicks(tickList) {
 	return list;
 }
 
-// 显示WebSocket状态:
+// show WebSocket status
 function setWsStatus(status) {
 	$('#navStatus .x-ws-status').hide();
 	$('#navStatus .x-ws-' + status).show();
 }
 
-// 关闭WebSocket:
 function closeWebSocket() {
 	if (window.wsNotification) {
 		window.wsNotification.close();
@@ -151,13 +140,13 @@ function closeWebSocket() {
 	}
 }
 
-// 客户端Timezone时区偏移量(转化为秒):
+// Client side Timezone offset in seconds
 const TZ_OFFSET = new Date().getTimezoneOffset() * 60_000;
 
-// 将[timestamp, O, H, L, C, V]转化为Object:
+// Conver [Timezone, Open, High, Low, Close] to an Object:
 function toSingleChartData(tohlcv) {
 	return {
-		// 转化为UTC+0表示的时间，因为TradingView按UTC+0处理时间:
+		// è½¬åŒ–ä¸ºUTC+0è¡¨ç¤ºçš„æ—¶é—´ï¼Œå› ä¸ºTradingViewæŒ‰UTC+0å¤„ç�†æ—¶é—´:
 		// https://tradingview.github.io/lightweight-charts/docs/time-zones
 		time: new Date(tohlcv[0] - TZ_OFFSET) / 1000,
 		open: tohlcv[1],
@@ -167,9 +156,8 @@ function toSingleChartData(tohlcv) {
 	};
 }
 
-// 初始化Chart:
 async function initChart() {
-	// 从REST API获取分钟K:
+	// get minute bars through REST API:
 	let dataList = [];
 	try {
 		dataList = await get('/api/bars/min');
@@ -177,7 +165,7 @@ async function initChart() {
 		console.error('load bars failed: ' + err);
 	}
 
-	// 创建Chart:
+	// create Chart:
 	const CHART_HEIGHT = 397;
 	window.chart = LightweightCharts.createChart($('#chart').get(0), {
 		layout: {
@@ -189,7 +177,7 @@ async function initChart() {
 		height: CHART_HEIGHT
 	});
 
-	// 添加K线图:
+	// add candle sticks:
 	window.chartCandlestickSeries = window.chart.addCandlestickSeries({
 		upColor: 'rgb(25, 135, 84)',
 		downColor: 'rgb(220, 53, 69)',
@@ -198,13 +186,12 @@ async function initChart() {
 
 	window.chart.timeScale().fitContent();
 
-	// 自动缩放:
+	// Auto zoom:
 	window.onresize = (event) => {
 		window.chart.resize($('#chart').width(), CHART_HEIGHT);
 	};
 }
 
-// 初始化WebSocket:
 function initWebSocket() {
 	if (window.wsTimeoutId) {
 		clearTimeout(window.wsTimeoutId);
@@ -214,7 +201,7 @@ function initWebSocket() {
 		return;
 	}
 	setWsStatus('connecting');
-	// 获取WebSocket Token:
+	// Get WebSocket Token:
 	post('/websocket/token', '').then(token => {
 		console.log(`websocket token: ${token}`);
 		doInitWebSocket(token);
@@ -226,19 +213,19 @@ function initWebSocket() {
 
 function doInitWebSocket(token) {
 	window.wsNotification = new WebSocket('ws://localhost:8006/notification?token=' + token);
-	// 已连接事件:
+
 	window.wsNotification.onopen = function () {
 		console.log('ws: connected.');
 		setWsStatus('connected');
 	};
-	// 已关闭事件:
+
 	window.wsNotification.onclose = function () {
 		console.log('ws: disconnected.');
 		setWsStatus('disconnected');
 		closeWebSocket();
 		window.wsTimeoutId = setTimeout(initWebSocket, 10000);
 	};
-	// 错误事件:
+
 	window.wsNotification.onerror = function () {
 		console.error('ws: error.');
 		setWsStatus('disconnected');
@@ -246,11 +233,11 @@ function doInitWebSocket(token) {
 		showError('Unable to connect to WebSocket.');
 		window.wsTimeoutId = setTimeout(initWebSocket, 10000);
 	}
-	// 消息事件:
+
 	window.wsNotification.onmessage = function (event) {
 		console.log('ws event: ' + event.data);
 		try {
-			// 由Vue App处理消息:
+			// Vue App processes the messages
 			window.app.onPush(JSON.parse(event.data)).then(() => console.log('process push ok.')).catch(err => console.error(err));
 		} catch (err) {
 			console.error(err);
@@ -258,7 +245,7 @@ function doInitWebSocket(token) {
 	};
 }
 
-// 初始化Vue App:
+// init Vue App:
 function initApp() {
 	window.app = new Vue({
 		el: '#app',
@@ -273,43 +260,37 @@ function initApp() {
 					frozen: NaN
 				}
 			},
-			// 展示Active Orders = true; 展示History Orders = false:
 			showActiveOrders: true,
-			// Active Orders列表:
 			activeOrders: [],
-			// History Orders列表:
 			historyOrders: [],
-			// 创建Order的表单:
 			orderForm: {
 				price: '',
 				quantity: ''
 			},
-			// 最大深度的Quantity:
+
 			maxDepth: 0,
-			// 订单簿:
 			orderBook: {
 				buy: fillOrderBook('BUY', []),
 				sell: fillOrderBook('SELL', []),
 				price: NaN
 			},
-			// 最新成交:
+			// Last traded price/quantity:
 			ticks: fillTicks([])
 		},
 		computed: {
-			// 是否可以下单:
 			orderFormReady: function () {
 				return this.orderForm.price !== '' && this.orderForm.quantity != '';
 			}
 		},
 		methods: {
-			// 格式化数字##.##:
+			// Number format: ##.##:
 			formatNumber: function (value) {
 				if (isNaN(value)) {
 					return '-';
 				}
 				return value.toFixed(2);
 			},
-			// 格式化时间HH:mm:ss
+			// Time format: HH:mm:ss
 			formatTime: function (value) {
 				if (isNaN(value)) {
 					return '-';
@@ -321,22 +302,23 @@ function initApp() {
 					s = d.getSeconds();
 				return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
 			},
-			// 计算深度占比:
+			// Percentage of depth to maxDepth:
 			depthWidth: function (qty) {
 				if (this.maxDepth > 0 && !isNaN(qty)) {
 					return (100 * qty / this.maxDepth) + '%';
 				}
 				return '0%';
 			},
-			// 调用REST API刷新资产:
 			refreshAssets: async function () {
 				try {
+					console.log('Refreshing assets...');
 					this.assets = await get('/api/assets');
+					console.log('Assets refreshed successfully:', this.assets);
 				} catch (err) {
+					console.error('Error refreshing assets:', err.message || err.error || 'Unknown error');
 					return showError(err.message || err.error || 'Error');
 				}
 			},
-			// 调用REST API刷新OrderBook:
 			refreshOrderBook: async function () {
 				try {
 					let book = await get('/api/orderBook');
@@ -348,7 +330,6 @@ function initApp() {
 					return showError(err);
 				}
 			},
-			// 调用REST API刷新Ticks:
 			refreshTicks: async function () {
 				try {
 					this.ticks = fillTicks(await get('/api/ticks'));
@@ -356,13 +337,12 @@ function initApp() {
 					return showError(err);
 				}
 			},
-			// 设置Order Form的Price:
+			// Order Form set Price:
 			setPrice: function (p) {
 				if (!isNaN(p)) {
 					this.orderForm.price = p.toFixed(2);
 				}
 			},
-			// 下单:
 			createOrder: async function (direction) {
 				console.log(`create order: ${direction} ${this.orderForm.price} ${this.orderForm.quantity}`);
 				let order;
@@ -378,17 +358,15 @@ function initApp() {
 				}
 				console.log(`created: ${JSON.stringify(order)}`);
 				this.orderForm.quantity = '';
-				// 可以根据返回的Order更新Active Orders列表，这里偷个懒，直接刷新:
 				await this.refreshAssets();
 				await this.refreshActiveOrders();
 			},
-			// 取消订单:
 			cancelOrder: async function (orderId) {
 				console.log(`cancel order ${orderId}`);
 				let order = await post(`/api/orders/${orderId}/cancel`, {});
 				console.log(`cancelled: ${JSON.stringify(order)}`);
 			},
-			// 调用REST API刷新Active Orders:
+			// use REST API to refresh Active Orders:
 			refreshActiveOrders: async function () {
 				try {
 					this.activeOrders = await get('/api/orders');
@@ -396,7 +374,7 @@ function initApp() {
 					return showError(err);
 				}
 			},
-			// 调用REST API刷新History Orders:
+			// use REST API to refresh History Orders:
 			refreshHistoryOrders: async function () {
 				try {
 					this.historyOrders = await get('/api/history/orders');
@@ -404,16 +382,16 @@ function initApp() {
 					return showError(err);
 				}
 			},
-			// 处理WebSocket消息:
+			// Dealing with WebSocket messages
 			onPush: async function (msg) {
 				if (msg.type === 'orderbook') {
-					// 更新orderbook:
+					// æ›´æ–°orderbook:
 					this.orderBook.buy = fillOrderBook('BUY', msg.data.buy);
 					this.orderBook.sell = fillOrderBook('SELL', msg.data.sell);
 					this.maxDepth = findMax(msg.data.buy, msg.data.sell);
 					this.orderBook.price = msg.data.price;
 				} else if (msg.type === 'tick') {
-					// 追加tick:
+					// add tick:
 					let list = [...this.ticks];
 					list.reverse();
 					list.push(...msg.data);
@@ -636,7 +614,7 @@ function initApp() {
 	<div id="notification" class="toast align-items-center text-white bg-primary border-0" role="alert" aria-live="assertive" aria-atomic="true">
 		<div class="d-flex">
 			<div class="toast-body">
-				订单xxxxxxxx已部分成交，剩余xxxxx。
+				è®¢å�•xxxxxxxxå·²éƒ¨åˆ†æˆ�äº¤ï¼Œå‰©ä½™xxxxxã€‚
 			</div>
 			<button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
 		</div>
