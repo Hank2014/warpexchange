@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: mail
+  config:
+    import: configserver:${CONFIG_SERVER:http://localhost:8888}
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: testApp
+    password: P@s$W0RRd
+    default-encoding: UTF-8
+    from: testApp2025tsa@gmail.com

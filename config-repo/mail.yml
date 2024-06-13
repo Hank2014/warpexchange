@@ -1,0 +1,5 @@
+# mail configuration
+
+server:
+port: ${APP_PORT:0}
+

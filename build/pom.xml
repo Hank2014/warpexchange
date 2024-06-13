@@ -16,5 +16,6 @@
 		<module>../trading-engine</module>
 		<module>../trading-sequencer</module>
 		<module>../ui</module>
+		<module>../mail</module>
 	</modules>
 </project>
